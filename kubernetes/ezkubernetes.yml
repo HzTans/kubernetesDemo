@@ -1,0 +1,47 @@
+apiVersion: apps/v1 # test
+kind: Deployment # What kind of object you want to create [deployment, service etc]
+metadata: # Data that helps uniquely identify the object, including a name string, UID, and optional namespace
+  name: hellopython
+  namespace: default
+spec: #  What state you desire for the object
+  selector: # Define what selectors the Deployment uses to find the PODS that are related to it
+    matchLabels: # matchLabels is a map of {key,value} pairs. 
+      app: hellopython
+  replicas: 1 # Tells the deployment to run 1 pod 
+  template: # When creating new pods, this template will be used
+    metadata:
+      labels: # Labels used when searching / managing deployments
+        app: hellopython
+    spec:
+      initContainers:
+      - name: download
+        image: cao/ezserver:1.0
+        command: ["/bin/bash"]
+        args: ["-c","curl https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Cat_poster_2.jpg/1280px-Cat_poster_2.jpg > /var/lib/data/image.jpg"]
+        volumeMounts:
+        - mountPath: /var/lib/data
+          name: source
+      containers:
+      - name: ezserver # Name of the Container
+        image: cao/ezserver:1.0 # Important, to not use latest tag as it will try DOckerhub then
+        imagePullPolicy: IfNotPresent # Will only pull from DockerHub if not present already in Local docker
+        ports: # Ports to Expose
+        - containerPort: 8000
+        volumeMounts:
+        - mountPath: /api/src
+          name: source
+      volumes:
+      - emptyDir: {}
+        name: source
+      ### test end
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hellopython
+  namespace: default # test
+spec:
+  ports:
+  - port: 8000 # The ports to expose
+  selector:
+    app: hellopython
